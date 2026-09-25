@@ -1,0 +1,14 @@
+# real database credentials, never commit
+api/config.php
+
+# OS junk
+.DS_Store
+Thumbs.db
+__MACOSX/
+
+# editor
+.vscode/
+.idea/
+
+# logs
+*.log
