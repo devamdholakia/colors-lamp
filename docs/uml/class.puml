@@ -1,0 +1,159 @@
+@startuml class
+!pragma layout smetana
+title COLORS Web Application - Class Diagram
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Frontend (public/)" {
+  class "index.html" as IndexPage <<page>> {
+    + loginName : text input
+    + loginPassword : password input
+    + loginButton : button
+    + loginResult : span
+  }
+
+  class "color.html" as ColorPage <<page>> {
+    + userName : span
+    + searchText : text input
+    + searchColorButton : button
+    + colorSearchResult : span
+    + colorList : p
+    + colorText : text input
+    + addColorButton : button
+    + colorAddResult : span
+    + logoutButton : button
+  }
+
+  class "code.js" as CodeJs <<script>> {
+    + urlBase : String = "http://159.203.177.121/LAMPAPI" {readOnly}
+    + extension : String = "php" {readOnly}
+    + userId : int
+    + firstName : String
+    + lastName : String
+    --
+    + doLogin() : void
+    + saveCookie() : void
+    + readCookie() : void
+    + doLogout() : void
+    + addColor() : void
+    + searchColor() : void
+  }
+
+  class "md5.js" as Md5Js <<library>> {
+    + md5(string, key, raw) : String
+  }
+}
+
+package "API (api/)" {
+  class "Login.php" as LoginApi <<endpoint>> {
+    - getRequestInfo() : array
+    - sendResultInfoAsJson(obj) : void
+    - returnWithError(err) : void
+    - returnWithInfo(firstName, lastName, id) : void
+  }
+
+  class "AddColor.php" as AddColorApi <<endpoint>> {
+    - getRequestInfo() : array
+    - sendResultInfoAsJson(obj) : void
+    - returnWithError(err) : void
+  }
+
+  class "SearchColors.php" as SearchColorsApi <<endpoint>> {
+    - getRequestInfo() : array
+    - sendResultInfoAsJson(obj) : void
+    - returnWithError(err) : void
+    - returnWithInfo(searchResults) : void
+  }
+
+  class "config.php" as Config <<config>> {
+    + DB_HOST : String
+    + DB_USER : String
+    + DB_PASS : String
+    + DB_NAME : String = "COP4331"
+  }
+}
+
+package "Database (COP4331)" {
+  class Users <<table>> {
+    + ID : INT <<PK>>
+    {field} + FirstName : VARCHAR(50)
+    {field} + LastName : VARCHAR(50)
+    {field} + Login : VARCHAR(50)
+    {field} + Password : VARCHAR(50)
+  }
+
+  class Colors <<table>> {
+    + ID : INT <<PK>>
+    {field} + Name : VARCHAR(50)
+    + UserID : INT
+  }
+}
+
+package "JSON messages" {
+  class LoginRequest <<JSON>> {
+    + login : String
+    + password : String
+  }
+  class LoginResponse <<JSON>> {
+    + id : int
+    + firstName : String
+    + lastName : String
+    + error : String
+  }
+  class AddColorRequest <<JSON>> {
+    + color : String
+    + userId : int
+  }
+  class AddColorResponse <<JSON>> {
+    + error : String
+  }
+  class SearchRequest <<JSON>> {
+    + search : String
+    + userId : int
+  }
+  class SearchResponse <<JSON>> {
+    + results : String[]
+    + error : String
+  }
+}
+
+IndexPage ..> CodeJs : <<loads>>
+IndexPage ..> Md5Js : <<loads>>
+ColorPage ..> CodeJs : <<loads>>\ncalls readCookie() on load
+
+CodeJs ..> LoginApi : POST (XHR)
+CodeJs ..> AddColorApi : POST (XHR)
+CodeJs ..> SearchColorsApi : POST (XHR)
+
+LoginApi ..> LoginRequest : <<reads>>
+LoginApi ..> LoginResponse : <<returns>>
+AddColorApi ..> AddColorRequest : <<reads>>
+AddColorApi ..> AddColorResponse : <<returns>>
+SearchColorsApi ..> SearchRequest : <<reads>>
+SearchColorsApi ..> SearchResponse : <<returns>>
+
+LoginApi ..> Config : <<requires>>
+AddColorApi ..> Config : <<requires>>
+SearchColorsApi ..> Config : <<requires>>
+
+LoginApi ..> Users : SELECT
+AddColorApi ..> Colors : INSERT
+SearchColorsApi ..> Colors : SELECT (LIKE)
+
+Users "1" -- "0..*" Colors : owns >
+
+note bottom of Colors
+  Colors.UserID refers to Users.ID, but
+  schema.sql defines no FOREIGN KEY constraint.
+end note
+
+note bottom of Md5Js
+  Loaded by index.html, but the md5()
+  call in doLogin() is commented out.
+end note
+
+note bottom of SearchResponse
+  When nothing matches, SearchColors.php returns
+  {id, firstName, lastName, error} with no results.
+end note
+@enduml
