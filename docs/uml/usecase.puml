@@ -1,0 +1,54 @@
+@startuml usecase
+!pragma layout smetana
+title COLORS Web Application - Use Case Diagram
+left to right direction
+skinparam actorStyle awesome
+
+actor "User" as User
+actor "MySQL Database\n(COP4331)" as DB <<system>>
+
+rectangle "COLORS Web Application" {
+  usecase "Log In" as UC_Login
+  usecase "Verify Credentials" as UC_Verify
+  usecase "Save Session Cookie" as UC_Save
+  usecase "Open Color Page" as UC_Open
+  usecase "Read Session Cookie" as UC_Read
+  usecase "Search Colors" as UC_Search
+  usecase "Add Color" as UC_Add
+  usecase "Log Out" as UC_Logout
+}
+
+User --> UC_Login
+User --> UC_Open
+User --> UC_Search
+User --> UC_Add
+User --> UC_Logout
+
+UC_Login ..> UC_Verify : <<include>>
+UC_Save ..> UC_Login : <<extend>>\n[login succeeds]
+UC_Open ..> UC_Read : <<include>>
+
+UC_Verify --> DB
+UC_Search --> DB
+UC_Add --> DB
+
+note right of UC_Read
+  Runs when color.html loads.
+  If no userId is in the cookie,
+  the user is sent back to index.html.
+end note
+
+note right of UC_Search
+  Search, Add, and Log Out are only
+  reachable from color.html, after login.
+  Search does partial (LIKE) matching
+  on the logged-in user's colors only.
+end note
+
+note as N_Unsupported
+  Not supported by the system:
+  registration, editing colors,
+  deleting colors.
+end note
+UC_Logout .. N_Unsupported
+@enduml
