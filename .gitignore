@@ -12,3 +12,6 @@ __MACOSX/
 
 # logs
 *.log
+
+# node tooling for linting
+node_modules/

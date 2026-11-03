@@ -1,0 +1,21 @@
+{
+  "name": "colors-lamp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Linting tools for the COLORS LAMP app. Node.js is used only to lint, not to run the app.",
+  "license": "MIT",
+  "scripts": {
+    "lint:html": "htmlhint \"public/**/*.html\"",
+    "lint:css": "stylelint \"public/**/*.css\"",
+    "lint:js": "eslint .",
+    "lint": "npm run lint:html && npm run lint:css && npm run lint:js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "htmlhint": "^1.9.2",
+    "stylelint": "^18.0.0",
+    "stylelint-config-standard": "^41.0.0"
+  }
+}
