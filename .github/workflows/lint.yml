@@ -1,4 +1,4 @@
-name: Lint
+name: Lint and Test
 
 on:
   push:
@@ -28,3 +28,92 @@ jobs:
 
       - name: Lint JavaScript
         run: npm run lint:js
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install test tools
+        run: npm ci
+
+      - name: Run front-end unit tests
+        run: npm run test:unit
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mysqli
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install test tools
+        run: npm ci
+
+      - name: Load database schema and seed data
+        run: mysql -h 127.0.0.1 -u root -proot < db/schema.sql
+
+      - name: Create a MySQL user for the app
+        run: |
+          mysql -h 127.0.0.1 -u root -proot -e "
+            CREATE USER 'colors_app'@'%' IDENTIFIED WITH mysql_native_password BY 'colors_test';
+            GRANT ALL PRIVILEGES ON COP4331.* TO 'colors_app'@'%';"
+
+      - name: Create API config for the test database
+        run: |
+          cat > api/config.php <<'EOF'
+          <?php
+          define('DB_HOST', '127.0.0.1');
+          define('DB_USER', 'colors_app');
+          define('DB_PASS', 'colors_test');
+          define('DB_NAME', 'COP4331');
+          EOF
+
+      - name: Start PHP server for the API
+        run: |
+          php -S 127.0.0.1:8000 -t api > php-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            curl -s -o /dev/null http://127.0.0.1:8000/Login.php && exit 0
+            sleep 1
+          done
+          echo "PHP server did not start"
+          exit 1
+
+      - name: Run API integration tests
+        run: npm run test:integration
+        env:
+          API_URL: http://127.0.0.1:8000
+
+      - name: Show PHP server log
+        if: failure()
+        run: cat php-server.log
